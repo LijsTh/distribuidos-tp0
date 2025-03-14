@@ -40,6 +40,7 @@ def client_generate(n):
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+
 """
     return client_string
             
