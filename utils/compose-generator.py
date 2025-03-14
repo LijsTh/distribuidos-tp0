@@ -13,6 +13,8 @@ SERVER_STR = """  server:
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server/config.ini:/config.ini
 
 """
 
@@ -38,7 +40,8 @@ def client_generate(n):
       - testing_net
     depends_on:
       - server
-
+    volumes:
+      - ./client/config.yaml:/config.yaml
 """
     return client_string
             
