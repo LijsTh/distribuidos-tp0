@@ -16,10 +16,34 @@ Para finalizar los containers se hace con el comando:
 make docker-compose-down
 ```
 
-### Script EJ1
+### EJ1
 
 Para generar un yaml con mas clientes se utiliza el script `generar-compose.sh` con los siguientes argumentos:
 
 ```shell
 ./generar-compose.sh <nombre-archivo.yaml> <cantidad clientes>
 ```
+
+### EJ2
+
+Se utilizo dos volumenes, uno en el servidor y otro en el cliente para poder cumplir con el requisito de no tener que reconstruir las imagenes para que se apliquen los cambios en las configuraciones.
+
+```yaml
+server:
+        ...
+
+    volumes:
+      - ./server/config.ini:/config.ini
+
+client1:
+        ...
+
+    volumes:
+      - ./client/config.yaml:/config.yaml
+
+```
+
+> Con esta notación los volumenes son de tipo bind.
+
+
+
