@@ -1,9 +1,7 @@
 package common
 
 import (
-	"bufio"
 	"context"
-	"fmt"
 	"net"
 	"time"
 
@@ -65,34 +63,38 @@ loop:
 			return
 		}
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
+		bet := NewBetFromEnv()
 
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
-
+		err := SendBet(c.conn, bet)
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,
 				err,
 			)
+			c.conn.Close()
 			return
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
+		answer, err := RecvAnswer(c.conn)
+		if err != nil {
+			log.Errorf("action: respuesta_recibida | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			c.conn.Close()
+			return
+		}
+
+		if answer == SUCESS {
+			log.Infof("action: apuesta_enviada | result: success | dni %v | numer %v", bet.document, bet.number)
+		} else {
+			log.Infof("action: apuesta_enviada | result: fail | dni %v | numer %v", bet.document, bet.number)
+		}
+
+		c.conn.Close()
 
 		select {
 		case <-c.ctx.Done():
-			fired := c.ctx.(*signalCtx).Fired //Cast to determine which signal was raised.
-			log.Infof("action: %s | result: success", fired)
 			break loop
 		case <-time.After(c.config.LoopPeriod): // DEFAULT later
 			continue
