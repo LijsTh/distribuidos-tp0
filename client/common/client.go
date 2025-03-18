@@ -91,8 +91,6 @@ loop:
 
 		select {
 		case <-c.ctx.Done():
-			fired := c.ctx.(*signalCtx).Fired //Cast to determine which signal was raised.
-			log.Infof("action: %s | result: success", fired)
 			break loop
 		case <-time.After(c.config.LoopPeriod): // DEFAULT later
 			continue

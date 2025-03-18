@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 // Struct that simulates a NotifyContext but if casted can determine which signal was called  with the fired attribute.
@@ -37,6 +38,11 @@ func NotifyContext(parent context.Context, signals ...os.Signal) (ctx context.Co
 			select {
 			case fired := <-c.ch:
 				c.Fired = fired
+				if fired == syscall.SIGTERM {
+					log.Info("action: SIGTERM | result: success")
+				} else {
+					log.Info("action: SIGINT | result: success")
+				}
 				c.cancel()
 			case <-c.Done():
 			}
