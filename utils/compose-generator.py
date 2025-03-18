@@ -34,12 +34,6 @@ def client_generate(n):
     entrypoint: /client
     environment:
       - CLI_ID={i}
-      - AGENCY=1
-      - FIRSTNAME=John
-      - LASTNAME=Doe
-      - DOCUMENT=1234567
-      - BIRTHDATE=2000-01-01
-      - NUMBER=8590
     networks:
       - testing_net
     depends_on:
