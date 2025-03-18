@@ -48,6 +48,7 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
+		return err
 	}
 	c.conn = conn
 	return nil
@@ -60,7 +61,9 @@ func (c *Client) StartClientLoop() {
 loop:
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		if c.createClientSocket() != nil {
+			return
+		}
 
 		// TODO: Modify the send to avoid short-write
 		fmt.Fprintf(
@@ -87,7 +90,8 @@ loop:
 
 		select {
 		case <-c.ctx.Done():
-			log.Infof("action: SIGTERM | result: success")
+			fired := c.ctx.(*signalCtx).Fired //Cast to determine which signal was raised.
+			log.Infof("action: %s | result: success", fired)
 			break loop
 		case <-time.After(c.config.LoopPeriod): // DEFAULT later
 			continue

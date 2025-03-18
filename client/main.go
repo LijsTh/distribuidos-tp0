@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
 	"syscall"
 	"time"
@@ -113,9 +112,15 @@ func main() {
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	ctx, stop := common.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+	)
 
 	client := common.NewClient(clientConfig, ctx)
 	client.StartClientLoop()
+	stop() //
+
+	<-ctx.Done()
 }
