@@ -34,7 +34,7 @@ class Server:
                 if self.running:
                     logging.error(f"action: accept_connection | result: fail | error: {e}")
             
-            logging.info("action: server_shutdown | result: successs")
+            logging.info("action: server_shutdown | result: success")
 
     def __handle_client_connection(self):
         """
