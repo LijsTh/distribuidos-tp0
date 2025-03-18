@@ -91,9 +91,9 @@ loop:
 		}
 
 		if answer == SUCESS {
-			log.Infof("action: apuesta_enviada | result: success | dni %v | numer %v", bet.document, bet.number)
+			log.Infof("action: apuesta_enviada | result: success | dni: %v | number: %v", bet.document, bet.number)
 		} else {
-			log.Infof("action: apuesta_enviada | result: fail | dni %v | numer %v", bet.document, bet.number)
+			log.Infof("action: apuesta_enviada | result: fail | dni: %v | number: %v", bet.document, bet.number)
 		}
 
 		c.conn.Close()
