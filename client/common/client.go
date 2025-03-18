@@ -48,7 +48,7 @@ func (c *Client) createClientSocket() error {
 			c.config.ID,
 			err,
 		)
-		return err
+		return err 
 	}
 	c.conn = conn
 	return nil
@@ -72,6 +72,8 @@ loop:
 			c.config.ID,
 			msgID,
 		)
+
+		time.Sleep(c.config.LoopPeriod)
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
 		c.conn.Close()
 
@@ -90,7 +92,7 @@ loop:
 
 		select {
 		case <-c.ctx.Done():
-			fired := c.ctx.(*signalCtx).Fired //Cast to determine which signal was raised.
+			fired := c.ctx.(*signalCtx).Fired //Cast to determine which signal was raised. 
 			log.Infof("action: %s | result: success", fired)
 			break loop
 		case <-time.After(c.config.LoopPeriod): // DEFAULT later
