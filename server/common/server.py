@@ -52,7 +52,7 @@ class Server:
             send_answer(self.client, SUCCESS)
         except OSError as e:
             if self.running:
-                logging.infof("action: closing_client_connection | result: success")
+                logging.info("action: closing_client_connection | result: success")
             else:
                 logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception: 

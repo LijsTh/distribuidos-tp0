@@ -63,9 +63,14 @@ loop:
 			return
 		}
 
-		bet := NewBetFromEnv()
+		bet, err := NewBetFromEnv()
+		if err != nil {
+			log.Errorf("action: read_bets | result: fail| error: %v", err)
+			c.conn.Close()
+			return
+		}
 
-		err := SendBet(c.conn, bet)
+		err = SendBet(c.conn, bet)
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,

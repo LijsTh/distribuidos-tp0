@@ -27,18 +27,18 @@ func NewBet(agency string, firstName string, lastName string, document uint32, b
 	return bet
 }
 
-func NewBetFromEnv() *Bet {
+func NewBetFromEnv() (*Bet, error) {
 	agency := os.Getenv("AGENCY")
 	firstName := os.Getenv("FIRSTNAME")
 	lastName := os.Getenv("LASTNAME")
 	document, err := strconv.Atoi(os.Getenv("DOCUMENT"))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	birthDate := os.Getenv("BIRTHDATE")
 	number, err := strconv.Atoi(os.Getenv("NUMBER"))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return NewBet(agency, firstName, lastName, uint32(document), birthDate, uint16(number))
+	return NewBet(agency, firstName, lastName, uint32(document), birthDate, uint16(number)), nil
 }
