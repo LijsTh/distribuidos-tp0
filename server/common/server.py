@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 from common.utils import Bet, store_bets
-from common.protocol import recv_bet, send_answer, SUCCESS, FAIL
+from common.protocol import recv_batch, send_answer, SUCCESS, FAIL
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -36,7 +36,7 @@ class Server:
                 if self.running:
                     logging.error(f"action: accept_connection | result: fail | error: {e}")
             
-            logging.info("action: server_shutdown | result: success")
+        logging.info("action: server_shutdown | result: success")
 
     def __handle_client_connection(self):
         """
@@ -46,17 +46,18 @@ class Server:
         client socket will also be closed
         """
         try:
-            bet = recv_bet(self.client)
-            store_bets([bet])
-            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}.")
+            bets = recv_batch(self.client)
+            store_bets(bets)
+            logging.info(f"action: apuesta_recibida| result: success | cantidad: {len(bets)}")
             send_answer(self.client, SUCCESS)
         except OSError as e:
             if self.running:
                 logging.info("action: closing_client_connection | result: success")
-            else:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
+
         except Exception: 
             send_answer(self.client, FAIL)
+            logging.error(f"action: apuesta_recibida| result: fail | cantidad: {len(bets)}")
+
         finally:
             if self.client:
                 self.client.close()

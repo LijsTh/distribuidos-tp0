@@ -1,6 +1,7 @@
 import socket 
 from common.utils import Bet
-# Const sizes 
+
+
 AGENCY_SIZE = 1
 STR_SIZE = 1
 MAX_STR_SIZE = 255
@@ -8,10 +9,14 @@ DOCUMENT_SIZE = 4
 BIRTHDATE_SIZE = 10
 NUMBER_SIZE = 2
 ANSWER_SIZE = 1
+BATCH_SIZE = 2
 
-# Result constants 
+# result constants
 SUCCESS = 0
 FAIL = 1
+
+# batch max
+BATCHMAX = 8000 #8kb
 
 
 """
@@ -79,6 +84,14 @@ def recv_bet(skt: socket.socket) -> Bet:
     number = int.from_bytes(data, byteorder='big')
 
     return Bet(agency, first_name, last_name, document, birthdate, number)
+
+def recv_batch(skt: socket.socket) -> list[Bet]:
+    data = recv_all(skt, BATCH_SIZE)
+    size = int.from_bytes(data, byteorder='big')
+    bets = []
+    for _ in range(size):
+        bets.append(recv_bet(skt))
+    return bets
 
 
 """

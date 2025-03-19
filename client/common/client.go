@@ -16,6 +16,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	MaxBatch      int
 }
 
 // Client Entity that encapsulates how
@@ -23,15 +24,19 @@ type Client struct {
 	config ClientConfig
 	conn   net.Conn
 	ctx    context.Context
+	reader *BetReader
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig, ctx context.Context) *Client {
+
 	client := &Client{
 		config: config,
 		ctx:    ctx,
+		reader: NewBetReader(config.MaxBatch, config.ID),
 	}
+
 	return client
 }
 
@@ -57,20 +62,19 @@ func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
 loop:
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+	for !c.reader.Finished() {
 		// Create the connection the server in every loop iteration. Send an
 		if c.createClientSocket() != nil {
 			return
 		}
-
-		bet, err := NewBetFromEnv()
+		bets, err := c.reader.ReadBets()
 		if err != nil {
 			log.Errorf("action: read_bets | result: fail| error: %v", err)
 			c.conn.Close()
 			return
 		}
 
-		err = SendBet(c.conn, bet)
+		err = SendBets(c.conn, bets)
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
 				c.config.ID,
@@ -90,10 +94,10 @@ loop:
 			return
 		}
 
-		if answer == SUCESS {
-			log.Infof("action: apuesta_enviada | result: success | dni: %v | number: %v", bet.document, bet.number)
+		if answer == SUCCESS {
+			log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
 		} else {
-			log.Infof("action: apuesta_enviada | result: fail | dni: %v | number: %v", bet.document, bet.number)
+			log.Infof("action: apuesta_enviada | result: fail | cantidad: %v", len(bets))
 		}
 
 		c.conn.Close()
@@ -101,7 +105,7 @@ loop:
 		select {
 		case <-c.ctx.Done():
 			break loop
-		case <-time.After(c.config.LoopPeriod): // DEFAULT later
+		default:
 			continue
 		}
 

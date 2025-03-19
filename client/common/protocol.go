@@ -13,10 +13,14 @@ const DOCUMENT_SIZE = 4
 const BIRTHDATE_SIZE = 10
 const NUMBER_SIZE = 2
 const ANSWER_SIZE = 1
+const BATCH_SIZE = 2
 
 // result constants
-const SUCESS = 0
+const SUCCESS = 0
 const FAIL = 1
+
+// batch max
+const BATCHMAX = 8000 //8kb
 
 func RecvAll(conn net.Conn, size int) ([]byte, error) {
 	/// Read all the bytes from the connection to avoid partial reads
@@ -62,7 +66,7 @@ func serializeUnknownString(message string, buf []byte) []byte {
 	return buf
 }
 
-func SendBet(conn net.Conn, bet *Bet) error {
+func encodeBet(bet *Bet) ([]byte, error) {
 	// agency
 	msg := make([]byte, 0)
 	msg = append(msg, bet.agency)
@@ -70,13 +74,13 @@ func SendBet(conn net.Conn, bet *Bet) error {
 	// firstName
 	msg = serializeUnknownString(bet.firstName, msg)
 	if msg == nil {
-		return errors.New("error serializing first name")
+		return nil, errors.New("error serializing firstName")
 	}
 
 	// lastName
 	msg = serializeUnknownString(bet.lastName, msg)
 	if msg == nil {
-		return errors.New("error serializing last name")
+		return nil, errors.New("error serializing lastName")
 	}
 
 	// document
@@ -85,19 +89,65 @@ func SendBet(conn net.Conn, bet *Bet) error {
 	msg = append(msg, docBytes...)
 
 	// birthDate
-	msg = append(msg, []byte(bet.birthDate)...) 
+	msg = append(msg, []byte(bet.birthDate)...) // SIZE 10
 
 	// number
 	numBytes := make([]byte, NUMBER_SIZE)
 	binary.BigEndian.PutUint16(numBytes, bet.number)
 	msg = append(msg, numBytes...)
 
-	err := send_all(conn, msg)
+	return msg, nil
+}
+
+func SendBet(conn net.Conn, bet *Bet) error {
+	msg, err := encodeBet(bet)
+	if err != nil {
+		return err
+	}
+	err = send_all(conn, msg)
 	if err != nil {
 		return err
 	} else {
 		return nil
 	}
+}
+
+// Send a batch of bets to the server
+// The first two bytes are the number of bets
+// Then it sends the bets
+func SendBets(conn net.Conn, bets []*Bet) error {
+	var batches [][]byte
+	var currentBatch []byte
+
+	currentBatch = make([]byte, BATCH_SIZE) // Initialize with 2 bytes
+	binary.BigEndian.PutUint16(currentBatch, uint16(len(bets)))
+
+	for _, bet := range bets {
+		betMsg, err := encodeBet(bet)
+		if err != nil {
+			return err
+		}
+
+		// If adding betMsg exceeds the max batch size, flush the current batch
+		if len(currentBatch)+len(betMsg) > BATCHMAX {
+			batches = append(batches, currentBatch)
+			currentBatch = make([]byte, 0)
+		}
+
+		currentBatch = append(currentBatch, betMsg...)
+	}
+
+	if len(currentBatch) > 0 {
+		batches = append(batches, currentBatch)
+	}
+
+	for _, batch := range batches {
+		if err := send_all(conn, batch); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func RecvAnswer(conn net.Conn) (int, error) {
