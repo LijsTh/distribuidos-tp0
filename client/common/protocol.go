@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"strconv"
 )
 
 const AGENCY_SIZE = 1
@@ -67,9 +68,7 @@ func serializeUnknownString(message string, buf []byte) []byte {
 }
 
 func encodeBet(bet *Bet) ([]byte, error) {
-	// agency
 	msg := make([]byte, 0)
-	msg = append(msg, bet.agency)
 
 	// firstName
 	msg = serializeUnknownString(bet.firstName, msg)
@@ -99,6 +98,7 @@ func encodeBet(bet *Bet) ([]byte, error) {
 	return msg, nil
 }
 
+// TODO: Actualizar para que la agencia solo se mande al principio
 func SendBet(conn net.Conn, bet *Bet) error {
 	msg, err := encodeBet(bet)
 	if err != nil {
@@ -115,12 +115,15 @@ func SendBet(conn net.Conn, bet *Bet) error {
 // Send a batch of bets to the server
 // The first two bytes are the number of bets
 // Then it sends the bets
-func SendBets(conn net.Conn, bets []*Bet) error {
+func SendBets(conn net.Conn, bets []*Bet, agency string) error {
 	var batches [][]byte
 	var currentBatch []byte
 
 	currentBatch = make([]byte, BATCH_SIZE) // Initialize with 2 bytes
 	binary.BigEndian.PutUint16(currentBatch, uint16(len(bets)))
+
+	agency_int, _ := strconv.Atoi(agency)
+	currentBatch = append(currentBatch, uint8(agency_int))
 
 	for _, bet := range bets {
 		betMsg, err := encodeBet(bet)

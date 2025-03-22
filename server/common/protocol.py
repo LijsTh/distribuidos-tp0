@@ -58,7 +58,6 @@ def recv_str_uknown_size(skt: socket.socket) -> str:
 """
 Reads a bet from the socket and returns it.
 The bet is expected to be in the following format:
-    - 1 byte for the agency
     - 1 byte for the first name size
     - (0-255) bytes for the first name
     - 1 byte for the last name size
@@ -68,9 +67,7 @@ The bet is expected to be in the following format:
     - 2 bytes for the number
 """
 
-def recv_bet(skt: socket.socket) -> Bet:
-    data = recv_all(skt, AGENCY_SIZE)
-    agency = int.from_bytes(data, byteorder='big')
+def recv_bet(skt: socket.socket, agency: str) -> Bet:
     data = recv_str_uknown_size(skt)
     first_name = data
     data = recv_str_uknown_size(skt)
@@ -85,12 +82,15 @@ def recv_bet(skt: socket.socket) -> Bet:
 
     return Bet(agency, first_name, last_name, document, birthdate, number)
 
+
 def recv_batch(skt: socket.socket) -> list[Bet]:
     data = recv_all(skt, BATCH_SIZE)
     size = int.from_bytes(data, byteorder='big')
+    agency = recv_all(skt, AGENCY_SIZE)
+    agency = int.from_bytes(agency, byteorder='big')
     bets = []
     for _ in range(size):
-        bets.append(recv_bet(skt))
+        bets.append(recv_bet(skt, agency))
     return bets
 
 

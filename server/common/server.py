@@ -45,6 +45,7 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        bets = []
         try:
             bets = recv_batch(self.client)
             store_bets(bets)
@@ -54,7 +55,7 @@ class Server:
             if self.running:
                 logging.info("action: closing_client_connection | result: success")
 
-        except Exception: 
+        except Exception as e: 
             send_answer(self.client, FAIL)
             logging.error(f"action: apuesta_recibida| result: fail | cantidad: {len(bets)}")
 
