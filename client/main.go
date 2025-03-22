@@ -122,8 +122,8 @@ func main() {
 	)
 
 	client := common.NewClient(clientConfig, ctx)
-	client.StartClientLoop()
+	client.Start()
 	stop() //
-
 	<-ctx.Done()
+	log.Debug("action: cleaned_up | result: success")
 }

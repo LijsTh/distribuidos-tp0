@@ -110,6 +110,10 @@ func (br *BetReader) ReadBets() ([]*Bet, error) {
 	return bets, nil
 }
 
+func (br *BetReader) Close() {
+	br.file.Close()
+}
+
 func NewBetFromEnv() (*Bet, error) {
 	agency := os.Getenv("AGENCY")
 	firstName := os.Getenv("FIRSTNAME")

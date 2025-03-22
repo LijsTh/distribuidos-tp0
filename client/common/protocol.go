@@ -15,10 +15,13 @@ const BIRTHDATE_SIZE = 10
 const NUMBER_SIZE = 2
 const ANSWER_SIZE = 1
 const BATCH_SIZE = 2
+const WINNERS_N_SIZE = 1
 
 // result constants
+const END_BATCH = 0
 const SUCCESS = 0
 const FAIL = 1
+const FINISH = 2
 
 // batch max
 const BATCHMAX = 8000 //8kb
@@ -44,10 +47,6 @@ func send_all(conn net.Conn, message []byte) error {
 	for written < len(message) {
 		n, err := conn.Write(message)
 		if err != nil || n == 0 {
-			log.Criticalf(
-				"action: send_all | result: fail| total read: %v |  error: %v",
-				err,
-			)
 			return err
 		}
 		written += n
@@ -98,7 +97,6 @@ func encodeBet(bet *Bet) ([]byte, error) {
 	return msg, nil
 }
 
-// TODO: Actualizar para que la agencia solo se mande al principio
 func SendBet(conn net.Conn, bet *Bet) error {
 	msg, err := encodeBet(bet)
 	if err != nil {
@@ -153,6 +151,9 @@ func SendBets(conn net.Conn, bets []*Bet, agency string) error {
 	return nil
 }
 
+// Receive an answer from the server
+// The answer is a single byte
+
 func RecvAnswer(conn net.Conn) (int, error) {
 	answer, err := RecvAll(conn, ANSWER_SIZE)
 	if err != nil {
@@ -160,4 +161,49 @@ func RecvAnswer(conn net.Conn) (int, error) {
 	}
 	answer_v := int(answer[0])
 	return answer_v, nil
+}
+
+// Receive the results from the server
+// The results are the winners of the bet
+func RecvResults(conn net.Conn) ([]uint32, error) {
+	winners_bytes, err := RecvAll(conn, WINNERS_N_SIZE)
+	if err != nil {
+		return nil, err
+	}
+	winners_n := int(winners_bytes[0])
+	winners := make([]uint32, winners_n)
+	for i := 0; i < winners_n; i++ {
+		winner, err := RecvAll(conn, DOCUMENT_SIZE)
+		if err != nil {
+			panic(err)
+		}
+		winners[i] = binary.BigEndian.Uint32(winner)
+	}
+	return winners, nil
+
+}
+
+// Send the end message to the server
+// The end message is a batch with 0 bets and the agency.
+func SendEndMessage(conn net.Conn, agency string) error {
+	// The end message is a batch with 0 bets and the agency. This symbolizes the end of the bets for the client.
+	return SendBets(conn, []*Bet{}, (agency))
+
+	// // The end message needs to have the same lenght as BATCH size as the server will read it as a batch with 0 bets
+	// msg := make([]byte, BATCH_SIZE+AGENCY_SIZE)
+	// binary.BigEndian.PutUint16(msg, END_BATCH)
+	// msg[2] = uint8(agency)
+	// err := send_all(conn, msg)
+	// if err != nil {
+	// 	return err
+	// } else {
+	// 	return nil
+	// }
+}
+
+func sendFinish(conn net.Conn) error {
+	msg := make([]byte, ANSWER_SIZE)
+	msg[0] = FINISH
+	err := send_all(conn, msg)
+	return err
 }

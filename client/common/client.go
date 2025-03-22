@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"net"
 	"time"
 
@@ -57,58 +58,109 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-loop:
-	for !c.reader.Finished() {
-		// Create the connection the server in every loop iteration. Send an
+func (c *Client) Start() {
+	defer c.reader.Close()
+	for {
 		if c.createClientSocket() != nil {
 			return
 		}
-		bets, err := c.reader.ReadBets()
-		if err != nil {
-			log.Errorf("action: read_bets | result: fail| error: %v", err)
-			c.conn.Close()
-			return
-		}
+		c.ctx.(*signalCtx).SetConnection(&c.conn)
 
-		err = SendBets(c.conn, bets, c.config.ID)
-		if err != nil {
-			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			c.conn.Close()
-			return
-		}
+		if !c.reader.Finished() {
+			err := c.sendBets()
+			if err != nil {
+				close_conn_if_alive(err, &c.conn)
+				return
+			}
 
-		answer, err := RecvAnswer(c.conn)
-		if err != nil {
-			log.Errorf("action: respuesta_recibida | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			c.conn.Close()
-			return
-		}
-
-		if answer == SUCCESS {
-			log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
 		} else {
-			log.Infof("action: apuesta_enviada | result: fail | cantidad: %v", len(bets))
-		}
-
-		c.conn.Close()
-
-		select {
-		case <-c.ctx.Done():
-			break loop
-		default:
-			continue
+			err := c.awaitResults()
+			if err != nil {
+				close_conn_if_alive(err, &c.conn)
+				return
+			}
+			break
 		}
 
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	log.Info("action: client_finished | result: success")
+}
+
+func (c *Client) sendBets() error {
+	bets, err := c.reader.ReadBets()
+	if err != nil {
+		error_handler(err, "read_bets", c.ctx)
+		return err
+	}
+
+	err = SendBets(c.conn, bets, c.config.ID)
+	if err != nil {
+		error_handler(err, "sending_bets", c.ctx)
+		return err
+	}
+
+	answer, err := RecvAnswer(c.conn)
+	if err != nil {
+		error_handler(err, "respuesta_recibida", c.ctx)
+		return err
+	}
+
+	if answer == SUCCESS {
+		log.Infof("action: apuesta_enviada | result: success | cantidad: %v", len(bets))
+	} else {
+		log.Infof("action: apuesta_enviada | result: fail | cantidad: %v", len(bets))
+	}
+	return nil
+}
+
+func (c *Client) awaitResults() error {
+	err := SendEndMessage(c.conn, c.config.ID)
+	if err != nil {
+		error_handler(err, "Send End", c.ctx)
+		return err
+	}
+
+	winners, err := RecvResults(c.conn)
+	if err != nil {
+		error_handler(err, "awaiting results", c.ctx)
+		return err
+	} else {
+		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
+	}
+
+	err = sendFinish(c.conn)
+	if err != nil {
+		error_handler(err, "finishing", c.ctx)
+		return err
+	}
+	return nil
+}
+
+func close_conn_if_alive(err error, conn *net.Conn) bool {
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	} else {
+		(*conn).Close()
+		return false
+	}
+}
+
+func error_handler(err error, message string, ctx context.Context) {
+	if errors.Is(err, net.ErrClosed) {
+		return
+	}
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		if !errors.Is(err, net.ErrClosed) {
+			log.Criticalf(
+				"action: %s | result: fail | error: %v",
+				message,
+				err,
+			)
+			return
+
+		}
+	}
 }
