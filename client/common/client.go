@@ -70,8 +70,6 @@ func (c *Client) Start() {
 		if !c.reader.Finished() {
 			err := c.sendBets()
 			if err != nil {
-				error_handler(err, "send_bets", c.ctx)
-				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
 			select {
@@ -83,8 +81,6 @@ func (c *Client) Start() {
 		} else {
 			err := c.awaitResults()
 			if err != nil {
-				error_handler(err, "await_results", c.ctx)
-				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
 			break
