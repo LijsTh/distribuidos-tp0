@@ -98,7 +98,6 @@ func encodeBet(bet *Bet) ([]byte, error) {
 	return msg, nil
 }
 
-// TODO: Actualizar para que la agencia solo se mande al principio
 func SendBet(conn net.Conn, bet *Bet) error {
 	msg, err := encodeBet(bet)
 	if err != nil {
