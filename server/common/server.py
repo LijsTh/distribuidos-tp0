@@ -4,7 +4,6 @@ import signal
 from common.utils import Bet, store_bets, load_bets, has_won
 from common.protocol import recv_batch, send_answer, send_results, SUCCESS, FAIL
 
-MAX = 3
 
 class Server:
     def __init__(self, port, listen_backlog, max_clients):
@@ -32,7 +31,7 @@ class Server:
         while self.running:
             try:
                 logging.info(f"finished_clients: {len(self.finished_clients)}")
-                if len(self.finished_clients) == 3:
+                if len(self.finished_clients) == self.max_clients:
                     logging.info("action: sorteo | result: success")
                     bets = load_bets()
                     winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
