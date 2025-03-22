@@ -74,6 +74,11 @@ loop:
 			return
 		}
 
+		if len(bets) == 0 {
+			c.conn.Close()
+			break loop
+		}
+
 		err = SendBets(c.conn, bets, c.config.ID)
 		if err != nil {
 			log.Errorf("action: apuesta_enviada | result: fail | client_id: %v | error: %v",
