@@ -33,6 +33,7 @@ class Server:
             try:
                 logging.info(f"finished_clients: {len(self.finished_clients)}")
                 if len(self.finished_clients) == 3:
+                    logging.info("sorteo | result: success")
                     bets = load_bets()
                     winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
                     send_results(self.finished_clients, winners)
