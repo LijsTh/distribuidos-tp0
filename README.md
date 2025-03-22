@@ -96,3 +96,25 @@ Entre corchetes se encuentra el tamaño en bytes de cada uno de los campos: ex. 
 Luego en respuesta el servidor le envia un 0 representando que se guardo la apuesta correctamente o un 1 en caso de que hubo un error.
 
 Finalmente el cliente lee la respuesta del servidor y procede a seguir mandando apuestas.
+
+### EJ6
+
+#### Protocolo de Batch
+
+El protocolo para mandar por batch es el siguiente:
+
+```
+| NUMBER_OF_BETS [2] | AGENCY[1] | BET1 | BET2 | BET3 | ...
+```
+
+```
+BET:
+| NAME_N [1]     | NAME   [N]   | SURNAME_N [1] | SURNAME[N] |
+| DOCUMENT [4]  | BIRTHDATE [10] | NUMBER [2]   |
+```
+
+Primero se manda la cantidad de apuestas que se van a mandar y la agencia. Luego de mandar estos dos datos se empiezan a mandar las encuestas encodificadas igual manera que el ej5 pero sin la agencia para no repetir.
+
+En el caso que el paquete se pase del limite de 8kb se siguen mandando paquetes que no superen el limite con las apuestas restantes haciendo que el mensaje que le llege al servidor y que este mandando el cliente respeta la variable `MaxAmount`. Notar la diferencia entre paquete y mensaje.
+
+También en el struct de apuesta presentado en el ejercicio anterior ya no esta la agencia como atributo.
