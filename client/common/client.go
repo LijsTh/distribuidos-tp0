@@ -65,6 +65,7 @@ func (c *Client) StartClientLoop() {
 	// Messages if the message amount threshold has not been surpassed
 loop:
 	for !c.reader.Finished() {
+		defer c.reader.Close()
 		// Create the connection the server in every loop iteration. Send an
 		if c.createClientSocket() != nil {
 			return
