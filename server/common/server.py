@@ -30,7 +30,6 @@ class Server:
 
         while self.running:
             try:
-                logging.info(f"finished_clients: {len(self.finished_clients)}")
                 if len(self.finished_clients) == self.max_clients:
                     logging.info("action: sorteo | result: success")
                     bets = load_bets()
@@ -99,16 +98,15 @@ class Server:
         return c
     
     def __kill_connections(self):
-        pass
-        # if self.client:
-        #     self.client.shutdown(socket.SHUT_RDWR)
-        #     self.client.close()
-        #     logging.info('action: client_connection_shutdown | result: success ')
+        if self.client:
+            self.client.shutdown(socket.SHUT_RDWR)
+            self.client.close()
+            logging.info('action: client_connection_shutdown | result: success ')
         
-        # for agency, client in self.finished_clients.items():
-        #     client.shutdown(socket.SHUT_RDWR)
-        #     client.close()
-        #     logging.info(f'action: client_connection_shutdown | result: success | Agency: {agency} ')
+        for agency, client in self.finished_clients.items():
+            client.shutdown(socket.SHUT_RDWR)
+            client.close()
+            logging.info(f'action: client_connection_shutdown | result: success | Agency: {agency} ')
         
     
     def __shutdown(self, sig, _):

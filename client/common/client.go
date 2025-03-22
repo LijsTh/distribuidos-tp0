@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"time"
 
@@ -69,7 +70,7 @@ func (c *Client) Start() {
 		if !c.reader.Finished() {
 			err := c.sendBets()
 			if err != nil {
-				log.Errorf("action: send_bets | result: fail | error: %v", err)
+				error_handler(err, "send_bets", c.ctx)
 				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
@@ -82,7 +83,7 @@ func (c *Client) Start() {
 		} else {
 			err := c.awaitResults()
 			if err != nil {
-				log.Errorf("action: await_results | result: fail | error: %v", err)
+				error_handler(err, "await_results", c.ctx)
 				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
@@ -128,13 +129,13 @@ func (c *Client) sendBets() error {
 }
 
 func (c *Client) awaitResults() error {
+	defer close_conn_if_alive(c.ctx, nil, &c.conn)
+
 	err := SendEndMessage(c.conn, c.config.ID)
 	if err != nil {
 		error_handler(err, "Send End", c.ctx)
 		return err
 	}
-
-	log.Info("action: end_message_sent | result: success")
 
 	winners, err := RecvResults(c.conn)
 	if err != nil {
@@ -156,6 +157,10 @@ func close_conn_if_alive(ctx context.Context, err error, conn *net.Conn) {
 	if errors.Is(err, net.ErrClosed) {
 		return
 	}
+	if errors.Is(err, io.EOF) {
+		log.Infof("action: server_closed_connection| result: success")
+		return
+	}
 	select {
 	case <-ctx.Done():
 		return
@@ -163,15 +168,6 @@ func close_conn_if_alive(ctx context.Context, err error, conn *net.Conn) {
 		(*conn).Close()
 	}
 }
-
-// func close_conn_if_alive(err error, conn *net.Conn) bool {
-// 	if errors.Is(err, net.ErrClosed) {
-// 		return true
-// 	} else {
-// 		(*conn).Close()
-// 		return false
-// 	}
-// }
 
 func error_handler(err error, message string, ctx context.Context) {
 	if errors.Is(err, net.ErrClosed) {
@@ -181,7 +177,7 @@ func error_handler(err error, message string, ctx context.Context) {
 	case <-ctx.Done():
 		return
 	default:
-		if !errors.Is(err, net.ErrClosed) {
+		if !errors.Is(err, net.ErrClosed) && !errors.Is(err, io.EOF) {
 			log.Criticalf(
 				"action: %s | result: fail | error: %v",
 				message,
