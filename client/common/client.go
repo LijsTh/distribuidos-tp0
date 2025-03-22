@@ -99,6 +99,9 @@ func (c *Client) sendBets() error {
 		return err
 	}
 
+	if len(bets) == 0 {
+		return nil
+	}
 	answer, err := RecvAnswer(c.conn)
 	if err != nil {
 		error_handler(err, "respuesta_recibida", c.ctx)
