@@ -118,3 +118,23 @@ Primero se manda la cantidad de apuestas que se van a mandar y la agencia. Luego
 En el caso que el paquete se pase del limite de 8kb se siguen mandando paquetes que no superen el limite con las apuestas restantes haciendo que el mensaje que le llege al servidor y que este mandando el cliente respeta la variable `MaxAmount`. Notar la diferencia entre paquete y mensaje.
 
 También en el struct de apuesta presentado en el ejercicio anterior ya no esta la agencia como atributo.
+
+## Ejercicio 7
+
+### Protocolo sorteo
+
+Cuando el cliente termina de mandar las apuestas, envia lo siguiente:
+
+```
+| 0 [2] | AGENCY[1] |
+```
+
+Manda un cero (2 bytes para q sea compatible con N_BETS del batch) indicando que no hay mas bets para mandar para luego mandar su agency.
+
+Luego el servidor se guarda los clientes que terminaron para realizar el sorteo. Al finalizar el mismo le manda a cada una de las agencias/clientes los ganadores de sus correspondientes agencias con el siguiente formato:
+
+```
+N_GANADORES[1] | DOCUMENT_1[4] | DOCUMENT_2[4] | ... | DOCUMENT_N |
+```
+
+Finalmente cada cliente le manda un 1 para indicar que recibio los resultados para que servidor termine.
