@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,10 +12,11 @@ import (
 type signalCtx struct {
 	context.Context
 
-	cancel  context.CancelFunc
-	signals []os.Signal
-	ch      chan os.Signal
-	Fired   os.Signal
+	cancel   context.CancelFunc
+	signals  []os.Signal
+	ch       chan os.Signal
+	Fired    os.Signal
+	currConn *net.Conn
 }
 
 func (c *signalCtx) stop() {
@@ -38,6 +40,10 @@ func NotifyContext(parent context.Context, signals ...os.Signal) (ctx context.Co
 			select {
 			case fired := <-c.ch:
 				c.Fired = fired
+				err := (*c.currConn).Close()
+				if err == nil {
+					log.Info("action: close_connection | result: success")
+				}
 				if fired == syscall.SIGTERM {
 					log.Info("action: SIGTERM | result: success")
 				} else {
@@ -50,4 +56,8 @@ func NotifyContext(parent context.Context, signals ...os.Signal) (ctx context.Co
 		}()
 	}
 	return c, c.stop
+}
+
+func (c *signalCtx) SetConnection(conn *net.Conn) {
+	c.currConn = conn
 }
