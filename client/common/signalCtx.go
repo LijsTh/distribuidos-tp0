@@ -46,7 +46,7 @@ func NotifyContext(parent context.Context, signals ...os.Signal) (ctx context.Co
 				err := (*c.currConnection).Close()
 				if err == nil {
 					log.Info("action: close_connection | result: sucess")
-				}
+				} 
 				c.Fired = fired
 				if fired == syscall.SIGTERM {
 					log.Info("action: SIGTERM | result: success")

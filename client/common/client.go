@@ -69,14 +69,21 @@ func (c *Client) Start() {
 		if !c.reader.Finished() {
 			err := c.sendBets()
 			if err != nil {
-				close_conn_if_alive(err, &c.conn)
+				log.Errorf("action: send_bets | result: fail | error: %v", err)
+				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
-
+			select {
+			case <-c.ctx.Done():
+				return
+			case <-time.After(c.config.LoopPeriod):
+				continue
+			}
 		} else {
 			err := c.awaitResults()
 			if err != nil {
-				close_conn_if_alive(err, &c.conn)
+				log.Errorf("action: await_results | result: fail | error: %v", err)
+				close_conn_if_alive(c.ctx, err, &c.conn)
 				return
 			}
 			break
@@ -87,11 +94,18 @@ func (c *Client) Start() {
 }
 
 func (c *Client) sendBets() error {
+	defer close_conn_if_alive(c.ctx, nil, &c.conn)
 	bets, err := c.reader.ReadBets()
 	if err != nil {
 		error_handler(err, "read_bets", c.ctx)
 		return err
 	}
+
+	if len(bets) == 0 {
+		return nil
+	}
+
+	log.Infof("action: read_bets | result: success | cantidad: %v", len(bets))
 
 	err = SendBets(c.conn, bets, c.config.ID)
 	if err != nil {
@@ -99,9 +113,6 @@ func (c *Client) sendBets() error {
 		return err
 	}
 
-	if len(bets) == 0 {
-		return nil
-	}
 	answer, err := RecvAnswer(c.conn)
 	if err != nil {
 		error_handler(err, "respuesta_recibida", c.ctx)
@@ -123,6 +134,8 @@ func (c *Client) awaitResults() error {
 		return err
 	}
 
+	log.Info("action: end_message_sent | result: success")
+
 	winners, err := RecvResults(c.conn)
 	if err != nil {
 		error_handler(err, "awaiting results", c.ctx)
@@ -139,14 +152,26 @@ func (c *Client) awaitResults() error {
 	return nil
 }
 
-func close_conn_if_alive(err error, conn *net.Conn) bool {
+func close_conn_if_alive(ctx context.Context, err error, conn *net.Conn) {
 	if errors.Is(err, net.ErrClosed) {
-		return true
-	} else {
+		return
+	}
+	select {
+	case <-ctx.Done():
+		return
+	default:
 		(*conn).Close()
-		return false
 	}
 }
+
+// func close_conn_if_alive(err error, conn *net.Conn) bool {
+// 	if errors.Is(err, net.ErrClosed) {
+// 		return true
+// 	} else {
+// 		(*conn).Close()
+// 		return false
+// 	}
+// }
 
 func error_handler(err error, message string, ctx context.Context) {
 	if errors.Is(err, net.ErrClosed) {

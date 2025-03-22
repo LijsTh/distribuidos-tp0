@@ -186,13 +186,13 @@ func RecvResults(conn net.Conn) ([]uint32, error) {
 // Send the end message to the server
 // The end message is a batch with 0 bets and the agency.
 func SendEndMessage(conn net.Conn, agency string) error {
-	// The end message is a batch with 0 bets and the agency. This symbolizes the end of the bets for the client.
-	return SendBets(conn, []*Bet{}, (agency))
-
+	return SendBets(conn, []*Bet{}, agency)
 	// // The end message needs to have the same lenght as BATCH size as the server will read it as a batch with 0 bets
 	// msg := make([]byte, BATCH_SIZE+AGENCY_SIZE)
 	// binary.BigEndian.PutUint16(msg, END_BATCH)
-	// msg[2] = uint8(agency)
+
+	// agency_int, _ := strconv.Atoi(agency)
+	// msg[2] = uint8(agency_int)
 	// err := send_all(conn, msg)
 	// if err != nil {
 	// 	return err

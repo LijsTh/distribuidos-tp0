@@ -4,6 +4,7 @@ import signal
 from common.utils import Bet, store_bets, load_bets, has_won
 from common.protocol import recv_batch, send_answer, send_results, SUCCESS, FAIL
 
+MAX = 3
 
 class Server:
     def __init__(self, port, listen_backlog, max_clients):
@@ -30,7 +31,8 @@ class Server:
 
         while self.running:
             try:
-                if len(self.finished_clients) == self.max_clients:
+                logging.info(f"finished_clients: {len(self.finished_clients)}")
+                if len(self.finished_clients) == 3:
                     bets = load_bets()
                     winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
                     send_results(self.finished_clients, winners)
@@ -44,6 +46,10 @@ class Server:
             except OSError as e:
                 if self.running:
                     logging.error(f"action: accept_connection | result: fail | error: {e}")
+                    return
+            except Exception as e:
+                logging.error(f"action: server_loop | result: fail | error: {e}")
+                return
             
         logging.info("action: server_shutdown | result: success")
 
@@ -60,6 +66,7 @@ class Server:
             if len(bets) == 0:
                 self.finished_clients[agency] = self.client
                 self.client = None
+                return
             else :
                 store_bets(bets)
                 logging.info(f"action: apuesta_recibida| result: success | cantidad: {len(bets)}")
@@ -92,15 +99,16 @@ class Server:
         return c
     
     def __kill_connections(self):
-        if self.client:
-            self.client.shutdown(socket.SHUT_RDWR)
-            self.client.close()
-            logging.info('action: client_connection_shutdown | result: success ')
+        pass
+        # if self.client:
+        #     self.client.shutdown(socket.SHUT_RDWR)
+        #     self.client.close()
+        #     logging.info('action: client_connection_shutdown | result: success ')
         
-        for agency, client in self.finished_clients.items():
-            client.shutdown(socket.SHUT_RDWR)
-            client.close()
-            logging.info(f'action: client_connection_shutdown | result: success | Agency: {agency} ')
+        # for agency, client in self.finished_clients.items():
+        #     client.shutdown(socket.SHUT_RDWR)
+        #     client.close()
+        #     logging.info(f'action: client_connection_shutdown | result: success | Agency: {agency} ')
         
     
     def __shutdown(self, sig, _):
