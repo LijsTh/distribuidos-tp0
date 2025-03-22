@@ -4,14 +4,14 @@ import signal
 from common.utils import Bet, store_bets, load_bets, has_won
 from common.protocol import recv_batch, send_answer, send_results, SUCCESS, FAIL
 
-MAX_CLIENTS = 5
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, max_clients):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.max_clients = max_clients
         self.client = None
         self.finished_clients = {}
         self.running = True
@@ -30,7 +30,7 @@ class Server:
 
         while self.running:
             try:
-                if len(self.finished_clients) == MAX_CLIENTS:
+                if len(self.finished_clients) == self.max_clients:
                     bets = load_bets()
                     winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
                     send_results(self.finished_clients, winners)

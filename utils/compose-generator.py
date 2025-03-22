@@ -4,12 +4,13 @@ INIT_STR = """name: tp0
 services:
 """
 
-SERVER_STR = """  server:
+SERVER_STR = f"""  server:
     container_name: server
     image: server:latest
     entrypoint: python3 /main.py
     environment:
       - PYTHONUNBUFFERED=1
+      - MAX_CLIENTS={sys.argv[2]}
     networks:
       - testing_net
     volumes:
