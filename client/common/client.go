@@ -74,10 +74,12 @@ func (c *Client) Start() {
 			}
 			select {
 			case <-c.ctx.Done():
+				log.Info("action: shutting down| result: success")
 				return
 			case <-time.After(c.config.LoopPeriod):
 				continue
 			}
+
 		} else {
 			err := c.awaitResults()
 			if err != nil {
@@ -91,7 +93,7 @@ func (c *Client) Start() {
 }
 
 func (c *Client) sendBets() error {
-	defer close_conn_if_alive(c.ctx, nil, &c.conn)
+	defer c.conn.Close()
 	bets, err := c.reader.ReadBets()
 	if err != nil {
 		error_handler(err, "read_bets", c.ctx)
@@ -123,7 +125,7 @@ func (c *Client) sendBets() error {
 }
 
 func (c *Client) awaitResults() error {
-	defer close_conn_if_alive(c.ctx, nil, &c.conn)
+	defer c.conn.Close()
 
 	err := SendEndMessage(c.conn, c.config.ID)
 	if err != nil {
@@ -147,24 +149,10 @@ func (c *Client) awaitResults() error {
 	return nil
 }
 
-func close_conn_if_alive(ctx context.Context, err error, conn *net.Conn) {
-	if errors.Is(err, net.ErrClosed) {
-		return
-	}
-	if errors.Is(err, io.EOF) {
-		log.Infof("action: server_closed_connection| result: success")
-		return
-	}
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		(*conn).Close()
-	}
-}
-
 func error_handler(err error, message string, ctx context.Context) {
-	if errors.Is(err, net.ErrClosed) {
+	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
+		log.Infof("action: %s | result: fail | reason: sever_closed", message)
+		log.Infof("action: shutting_down | result: success")
 		return
 	}
 	select {
@@ -177,8 +165,6 @@ func error_handler(err error, message string, ctx context.Context) {
 				message,
 				err,
 			)
-			return
-
 		}
 	}
 }

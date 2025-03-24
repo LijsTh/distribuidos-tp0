@@ -1,7 +1,6 @@
 import socket
 import logging
 import signal
-import traceback
 from common.utils import Bet, store_bets, load_bets, has_won
 from common.protocol import recv_batch, send_answer, send_results, SUCCESS, FAIL
 
@@ -45,8 +44,7 @@ class Server:
                         self.__handle_client_connection()
             except OSError as e:
                 if self.running:
-                    tb = traceback.format_exc()
-                    logging.error(f"action: accept_connection | result: fail | error: {tb}")
+                    logging.error(f"action: server_loop | result: fail | error: {e}")
                     return
             except Exception as e:
                 logging.error(f"action: server_loop | result: fail | error: {e}")
