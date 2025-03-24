@@ -102,8 +102,6 @@ func (c *Client) sendBets() error {
 		return nil
 	}
 
-	log.Infof("action: read_bets | result: success | cantidad: %v", len(bets))
-
 	err = SendBets(c.conn, bets, c.config.ID)
 	if err != nil {
 		error_handler(err, "sending_bets", c.ctx)

@@ -64,7 +64,7 @@ class Server:
             bets, agency = recv_batch(self.client)
             if len(bets) == 0:
                 self.finished_clients[agency] = self.client
-                self.client = None
+                # self.client = None 
                 return
             else :
                 store_bets(bets)
@@ -81,7 +81,7 @@ class Server:
         finally:
             if self.client:
                 self.client.close()
-                self.client = None
+            self.client = None
 
     def __accept_new_connection(self):
         """
