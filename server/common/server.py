@@ -141,7 +141,6 @@ def sas (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_qu
     bets = []
     agency = None
     try:
-        logging.info("action: apuesta_recibida | result: in_progress")
         bets, agency = recv_batch(client)
         if len(bets) == 0:
             update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lottery_queue)
@@ -152,7 +151,7 @@ def sas (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_qu
         else :
             with file_lock:
                 store_bets(bets)
-                logging.info(f"action: apuesta_recibida| result: success | cantidad: {len(bets)}")
+            logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
             send_answer(client, SUCCESS)
 
     except OSError as e:
