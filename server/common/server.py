@@ -1,6 +1,7 @@
 import socket
 import logging
 import signal
+import traceback
 from common.utils import Bet, store_bets, load_bets, has_won
 from common.protocol import recv_batch, send_answer, send_results, SUCCESS, FAIL
 
@@ -44,7 +45,8 @@ class Server:
                         self.__handle_client_connection()
             except OSError as e:
                 if self.running:
-                    logging.error(f"action: accept_connection | result: fail | error: {e}")
+                    tb = traceback.format_exc()
+                    logging.error(f"action: accept_connection | result: fail | error: {tb}")
                     return
             except Exception as e:
                 logging.error(f"action: server_loop | result: fail | error: {e}")
@@ -60,12 +62,11 @@ class Server:
         client socket will also be closed
         """
         bets = []
+        agency = None
         try:
             bets, agency = recv_batch(self.client)
             if len(bets) == 0:
                 self.finished_clients[agency] = self.client
-                # self.client = None 
-                return
             else :
                 store_bets(bets)
                 logging.info(f"action: apuesta_recibida| result: success | cantidad: {len(bets)}")
@@ -79,7 +80,7 @@ class Server:
             logging.error(f"action: apuesta_recibida| result: fail | cantidad: {len(bets)}")
 
         finally:
-            if self.client:
+            if self.client and not agency:
                 self.client.close()
             self.client = None
 
