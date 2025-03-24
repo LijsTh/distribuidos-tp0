@@ -14,7 +14,6 @@ class Server:
         self._server_socket.settimeout(10)
         self._server_socket.listen(listen_backlog)
         self.max_clients = max_clients
-        self.finished_clients = {}
         self.running = True
         self.pool = multiprocessing.Pool()
 
@@ -26,22 +25,21 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-
-        signal.signal(signal.SIGINT, self.__shutdown)
-        signal.signal(signal.SIGTERM, self.__shutdown)
-
         manager = multiprocessing.Manager()
         file_lock = manager.Lock()
         agencies_done_lock = manager.Lock()
         agencies_done = manager.list()
         lottery_queue = manager.Queue()
 
+        signal.signal(signal.SIGINT, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done))
+        signal.signal(signal.SIGTERM, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done))
+
         with manager:
             while self.running:
                 try:
                     client_sock = self.__accept_new_connection()
                     if client_sock:
-                        self.pool.apply_async(sas, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue))
+                        self.pool.apply_async(handle_client, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue))
 
                 except socket.timeout:
                     logging.info("action: server_loop | result: success| error: timeout")
@@ -50,51 +48,15 @@ class Server:
                 except OSError as e:
                     if self.running:
                         logging.error(f"action: server_loop | result: fail | error: {e}")
-                        return
+                        break
                 except Exception as e:
                     logging.error(f"action: server_loop | result: fail | error: {e}")
-                    return
-                
-            self.pool.close()
-            self.pool.join()
+                    break
+
+            self.__exit(lottery_queue)
             
         logging.info("action: server_shutdown | result: success")
 
-
-
-    def __handle_client_connection(self, client):
-        """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
-        """
-        bets = []
-        agency = None
-        try:
-            logging.info("action: apuesta_recibida | result: in_progress")
-            bets, agency = recv_batch(client)
-            if len(bets) == 0:
-                with self.finished_clients_lock:
-                    self.finished_clients[agency] = client
-            else :
-                with self.file_lock:
-                    store_bets(bets)
-                    logging.info(f"action: apuesta_recibida| result: success | cantidad: {len(bets)}")
-
-                send_answer(client, SUCCESS)
-
-        except OSError as e:
-            if self.running:
-                logging.info("action: client_closed| result: success")
-
-        except Exception as e: 
-            send_answer(client, FAIL)
-            logging.error(f"action: apuesta_recibida| result: fail | cantidad: {len(bets)}")
-
-        finally:
-            if client and not agency:
-                client.close()
 
     def __accept_new_connection(self):
         """
@@ -110,33 +72,43 @@ class Server:
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
     
-    def __kill_connections(self):
-        pass
-        # if self.client:
-        #     self.client.shutdown(socket.SHUT_RDWR)
-        #     self.client.close()
-        #     logging.info('action: client_connection_shutdown | result: success ')
-        
-        # for agency, client in self.finished_clients.items():
-        #     client.shutdown(socket.SHUT_RDWR)
-        #     client.close()
-        #     logging.info(f'action: client_connection_shutdown | result: success | Agency: {agency} ')
-    
-    def __shutdown(self, sig, _):
+    def __kill_waiting_clients(self, queue, agencies_done):
+        for agency in agencies_done:
+            logging.debug(f"action: shutting_down_client: | agency: {agency}")
+            queue.put(False)
+
+
+    def __shutdown(self, sig, _, queue, agencies_done):
         if sig != None:
             logging.info(f"action: {signal.Signals(sig).name} | result: success")
         self.running = False
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
+        self.__kill_waiting_clients(queue, agencies_done)
         logging.info(f"action: server_skt_shutdown | result: success")
-        self.__kill_connections()
 
-def sas (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_queue):
+    def __exit(self, lottery_queue):
+            self.pool.close()
+            self.pool.join()
+            if self.running:
+                self.__shutdown(None, None, lottery_queue)
+            while not lottery_queue.empty():
+                logging.debug("Emptying leftovers")
+                lottery_queue.get()
+
+
+def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_queue):
     """
     Read message from a specific client socket and closes the socket
 
     If a problem arises in the communication with the client, the
     client socket will also be closed
+
+    If the client sends a batch of bets, the bets will be stored in a file. 
+
+    Else if the client sends an empty batch, the client will be marked as finished waiting
+    for the lottery to start. The lottery will start when all clients are finished and it will be announced with a TRUE message in the lottery_queue. If a signal is received to shutdown the queue will contain a FALSE message for the process to exit.
+
     """
     bets = []
     agency = None
@@ -144,8 +116,10 @@ def sas (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_qu
         bets, agency = recv_batch(client)
         if len(bets) == 0:
             update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lottery_queue)
-            lottery_queue.get()
-            bets = load_bets()
+            if not lottery_queue.get():
+                return
+            with file_lock:
+                bets = load_bets()
             winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
             send_results({agency: client}, winners)
         else :
@@ -154,14 +128,12 @@ def sas (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_qu
             logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
             send_answer(client, SUCCESS)
 
-    except OSError as e:
-        pass
-        # if self.running:
-        #     logging.info("action: client_closed| result: success")
+    except OSError:
+        logging.info("action: client_closed| result: success")
 
-    except Exception as e: 
-        send_answer(client, FAIL)
+    except Exception: 
         logging.error(f"action: apuesta_recibida| result: fail | cantidad: {len(bets)}")
+        send_answer(client, FAIL)
 
     finally:
         client.close()
