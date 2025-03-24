@@ -11,7 +11,6 @@ class Server:
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
-        self._server_socket.settimeout(5)
         self._server_socket.listen(listen_backlog)
         self.max_clients = max_clients
         self.running = True
@@ -84,7 +83,7 @@ class Server:
     def __shutdown(self, sig, _, queue, agencies_done, running):
         if sig != None:
             logging.info(f"action: {signal.Signals(sig).name} | result: success")
-        running = False
+        running.value = False
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         self.__kill_waiting_clients(queue, agencies_done)
@@ -93,7 +92,7 @@ class Server:
     def __exit(self, lottery_queue, running):
             self.pool.close()
             self.pool.join()
-            if running:
+            if running.value:
                 self.__shutdown(None, None, lottery_queue, [], running)
             while not lottery_queue.empty():
                 logging.debug("Emptying leftovers")
