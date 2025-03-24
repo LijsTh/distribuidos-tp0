@@ -175,7 +175,7 @@ func RecvResults(conn net.Conn) ([]uint32, error) {
 	for i := 0; i < winners_n; i++ {
 		winner, err := RecvAll(conn, DOCUMENT_SIZE)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		winners[i] = binary.BigEndian.Uint32(winner)
 	}
@@ -188,7 +188,6 @@ func RecvResults(conn net.Conn) ([]uint32, error) {
 func SendEndMessage(conn net.Conn, agency string) error {
 	return SendBets(conn, []*Bet{}, agency)
 }
-
 
 func sendFinish(conn net.Conn) error {
 	msg := make([]byte, ANSWER_SIZE)
