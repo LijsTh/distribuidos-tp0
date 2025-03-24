@@ -171,7 +171,7 @@ def update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lo
         agencies_done.append(agency)
         logging.info(f"action: cliente_finalizado | result: success | totales: {len(agencies_done)}")
         if len(agencies_done) == max_agencies:
-            logging.info("action: sorteo | result: sucess")
+            logging.info("action: sorteo | result: success")
             for agency in agencies_done:
                 lottery_queue.put(True)
     
