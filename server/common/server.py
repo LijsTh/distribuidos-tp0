@@ -11,7 +11,7 @@ class Server:
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
-        self._server_socket.settimeout(10)
+        self._server_socket.settimeout(5)
         self._server_socket.listen(listen_backlog)
         self.max_clients = max_clients
         self.running = True
@@ -42,7 +42,7 @@ class Server:
                         self.pool.apply_async(handle_client, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue))
 
                 except socket.timeout:
-                    logging.info("action: server_loop | result: success| error: timeout")
+                    logging.info("action: server_loop | result: success| listener: timeout")
                     break
     
                 except OSError as e:
@@ -91,7 +91,7 @@ class Server:
             self.pool.close()
             self.pool.join()
             if self.running:
-                self.__shutdown(None, None, lottery_queue)
+                self.__shutdown(None, None, lottery_queue, [])
             while not lottery_queue.empty():
                 logging.debug("Emptying leftovers")
                 lottery_queue.get()
