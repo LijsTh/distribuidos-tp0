@@ -43,10 +43,6 @@ class Server:
                         self.current_clients += 1
                         self.pool.apply_async(handle_client, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue, running))
 
-                except socket.timeout:
-                    logging.info("action: server_loop | result: success| listener: timeout")
-                    break
-    
                 except OSError as e:
                     if self.running:
                         logging.error(f"action: server_loop | result: fail | error: {e}")
