@@ -61,12 +61,14 @@ func (c *Client) createClientSocket() error {
 
 func (c *Client) Start() {
 	defer c.reader.Close()
-	for {
-		if c.createClientSocket() != nil {
-			return
-		}
-		c.ctx.(*signalCtx).SetConnection(&c.conn)
+	if c.createClientSocket() != nil {
+		return
+	}
 
+	c.ctx.(*signalCtx).SetConnection(&c.conn)
+	defer c.conn.Close()
+
+	for {
 		if !c.reader.Finished() {
 			err := c.sendBets()
 			if err != nil {
@@ -93,7 +95,6 @@ func (c *Client) Start() {
 }
 
 func (c *Client) sendBets() error {
-	defer c.conn.Close()
 	bets, err := c.reader.ReadBets()
 	if err != nil {
 		error_handler(err, "read_bets", c.ctx)
@@ -125,8 +126,6 @@ func (c *Client) sendBets() error {
 }
 
 func (c *Client) awaitResults() error {
-	defer c.conn.Close()
-
 	err := SendEndMessage(c.conn, c.config.ID)
 	if err != nil {
 		error_handler(err, "Send End", c.ctx)
