@@ -121,11 +121,12 @@ def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, 
                 update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lottery_queue)
                 if not lottery_queue.get():
                     return
+                bets = []
                 with file_lock:
                     bets = load_bets()
-                    winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
-                    send_results({agency: client}, winners)
-                    break
+                winners = [(bet.agency, int(bet.document)) for bet in bets if has_won(bet)]
+                send_results({agency: client}, winners)
+                break
             else :
                 with file_lock:
                     store_bets(bets)
