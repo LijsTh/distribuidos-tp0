@@ -30,10 +30,9 @@ class Server:
         agencies_done_lock = manager.Lock()
         agencies_done = manager.list()
         lottery_queue = manager.Queue()
-        running = manager.Value('b', True)
 
-        signal.signal(signal.SIGINT, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done, running))
-        signal.signal(signal.SIGTERM, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done, running))
+        signal.signal(signal.SIGINT, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done))
+        signal.signal(signal.SIGTERM, lambda s,f: self.__shutdown(s,f,lottery_queue, agencies_done))
 
         with manager:
             while self.current_clients < self.max_clients:
@@ -41,7 +40,7 @@ class Server:
                     client_sock = self.__accept_new_connection()
                     if client_sock:
                         self.current_clients += 1
-                        self.pool.apply_async(handle_client, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue, running))
+                        self.pool.apply_async(handle_client, args=(client_sock, file_lock, agencies_done_lock, agencies_done, self.max_clients, lottery_queue))
 
                 except OSError as e:
                     if self.running:
@@ -51,7 +50,7 @@ class Server:
                     logging.error(f"action: server_loop | result: fail | error: {e}")
                     break
 
-            self.__exit(lottery_queue, running)
+            self.__exit(lottery_queue)
             
         logging.info("action: server_shutdown | result: success")
 
@@ -76,26 +75,23 @@ class Server:
             queue.put(False)
 
 
-    def __shutdown(self, sig, _, queue, agencies_done, running):
+    def __shutdown(self, sig, _, queue, agencies_done):
         if sig != None:
             logging.info(f"action: {signal.Signals(sig).name} | result: success")
-        running.value = False
+        self.running = False
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         self.__kill_waiting_clients(queue, agencies_done)
         logging.info(f"action: server_skt_shutdown | result: success")
 
-    def __exit(self, lottery_queue, running):
+    def __exit(self, lottery_queue):
             self.pool.close()
             self.pool.join()
-            if running.value:
-                self.__shutdown(None, None, lottery_queue, [], running)
-            while not lottery_queue.empty():
-                logging.debug("Emptying leftovers")
-                lottery_queue.get()
+            if self.running:
+                self.__shutdown(None, None, lottery_queue, [])
 
 
-def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_queue, running):
+def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, lottery_queue):
     """
     Read message from a specific client socket and closes the socket
 
