@@ -110,7 +110,7 @@ def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, 
             agency = None
             bets, agency = recv_batch(client)
             if len(bets) == 0:
-                update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lottery_queue)
+                lottery_update(max_agencies, agency_lock, agencies_done, agency, lottery_queue)
                 if not lottery_queue.get():
                     return
                 bets = []
@@ -135,7 +135,10 @@ def handle_client (client, file_lock, agency_lock, agencies_done, max_agencies, 
     finally:
         client.close()
 
-def update_finished_clients(max_agencies, agency_lock, agencies_done, agency, lottery_queue):
+def lottery_update(max_agencies, agency_lock, agencies_done, agency, lottery_queue):
+    """
+    Updates the list of finished clients and if all clients are finished it will start the lottery.  
+    """
     with agency_lock: 
         agencies_done.append(agency)
         logging.info(f"action: cliente_finalizado | result: success | totales: {len(agencies_done)}")
