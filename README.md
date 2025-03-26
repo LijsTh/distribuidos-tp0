@@ -138,3 +138,17 @@ N_GANADORES[1] | DOCUMENT_1[4] | DOCUMENT_2[4] | ... | DOCUMENT_N |
 ```
 
 Finalmente cada cliente le manda un 1 para indicar que recibio los resultados para que servidor termine.
+
+## Ejercicio 8
+
+Para este ejericio se utilizo una pool de procesos en el servidor en la que se matiene un pool de tamaño de las agencias. Cada proceso es encargado de manejar la conexión con el cliente asociado.
+
+### Sincronización
+
+Primero, para la escritura de archivos se utilizo un `Lock` en el que solo un proceso podia estar utilizando el archivo. Este lock es manejado internamente por el `manager` de `multiprocessing`.
+
+Luego para la coordinación del sorteo se utilizo una `List` también manejada por le manager para garantizar acceso seguro, en donde cada proceso se agregaba a la lista una vez terminando. Luego de agregarse a la lista se queda a la espera de un mensaje en una blocking `queue` (también manejada por el `manager`) para saber si es momento del sorteo.
+
+A su vez, cuando un proceso terminaba se fijaba si ya todos habian terminado (el era el último) leyendo el tamaño de la lista luego de agregarse. En el caso de que si sea el último, agrega N cantidad de mensajes como N procesos haya a la `queue` mencionada anteriormente.
+
+De esta manera, cada proceso consume de la `queque` y procede a mandar los resultados de la encuesta sabiendo que al recibir el mensaje de la queue ya estan todos los procesos en el estado de mandar los resultados.
