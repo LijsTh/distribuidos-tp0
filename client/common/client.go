@@ -101,7 +101,7 @@ loop:
 		select {
 		case <-c.ctx.Done():
 			break loop
-		case <-time.After(c.config.LoopPeriod): // DEFAULT later
+		default:
 			continue
 		}
 
