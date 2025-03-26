@@ -119,7 +119,7 @@ En el caso que el paquete se pase del limite de 8kb se siguen mandando paquetes 
 
 También en el struct de apuesta presentado en el ejercicio anterior ya no esta la agencia como atributo.
 
-## Ejercicio 7
+## EJ7
 
 ### Protocolo sorteo
 
@@ -139,7 +139,7 @@ N_GANADORES[1] | DOCUMENT_1[4] | DOCUMENT_2[4] | ... | DOCUMENT_N |
 
 Finalmente cada cliente le manda un 1 para indicar que recibio los resultados para que servidor termine.
 
-## Ejercicio 8
+## Ej8
 
 Para este ejericio se utilizo una pool de procesos en el servidor en la que se matiene un pool de tamaño de las agencias. Cada proceso es encargado de manejar la conexión con el cliente asociado.
 
