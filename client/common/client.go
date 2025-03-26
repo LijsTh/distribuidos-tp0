@@ -89,6 +89,7 @@ func (c *Client) Start() {
 		}
 
 	}
+	// This sleep is explicitly added for testing. 
 	time.Sleep(c.config.LoopPeriod)
 	log.Info("action: client_finished | result: success")
 }
