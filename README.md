@@ -151,4 +151,4 @@ Luego para la coordinación del sorteo se utilizo una `List` también manejada p
 
 A su vez, cuando un proceso terminaba se fijaba si ya todos habian terminado (el era el último) leyendo el tamaño de la lista luego de agregarse. En el caso de que si sea el último, agrega N cantidad de mensajes como N procesos haya a la `queue` mencionada anteriormente.
 
-De esta manera, cada proceso consume de la `queque` y procede a mandar los resultados de la encuesta sabiendo que al recibir el mensaje de la queue ya estan todos los procesos en el estado de mandar los resultados.
+De esta manera, cada proceso consume de la `queue` y procede a mandar los resultados de la encuesta sabiendo que al recibir el mensaje de la queue ya estan todos los procesos en el estado de mandar los resultados.
