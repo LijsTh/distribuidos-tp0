@@ -150,7 +150,7 @@ func (c *Client) awaitResults() error {
 
 func error_handler(err error, message string, ctx context.Context) {
 	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
-		log.Infof("action: %s | result: fail | reason: sever_closed", message)
+		log.Infof("action: %s | result: fail | reason: connection_closed", message)
 		log.Infof("action: shutting_down | result: success")
 		return
 	}
