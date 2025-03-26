@@ -141,7 +141,7 @@ Finalmente cada cliente le manda un 1 para indicar que recibio los resultados pa
 
 ## Ej8
 
-Para este ejericio se utilizo una pool de procesos en el servidor en la que se matiene un pool de tamaño de las agencias. Cada proceso es encargado de manejar la conexión con el cliente asociado.
+Para este ejercicio se utilizo una pool de procesos en el servidor en la que se matiene un pool del tamaño de las agencias. Cada proceso es encargado de manejar la conexión con el cliente asociado.
 
 ### Sincronización
 
