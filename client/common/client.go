@@ -89,6 +89,7 @@ func (c *Client) Start() {
 		}
 
 	}
+	time.Sleep(c.config.LoopPeriod)
 	log.Info("action: client_finished | result: success")
 }
 
