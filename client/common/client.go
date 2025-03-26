@@ -76,7 +76,7 @@ func (c *Client) Start() {
 			case <-c.ctx.Done():
 				log.Info("action: shutting down| result: success")
 				return
-			case <-time.After(c.config.LoopPeriod):
+			default:
 				continue
 			}
 
